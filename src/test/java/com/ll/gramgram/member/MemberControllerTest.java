@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -37,13 +38,13 @@ public class MemberControllerTest {
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("showJoin"))
                 .andExpect(status().is2xxSuccessful())
-                .andExpect(content().string(containString("""
+                .andExpect(content().string(containsString("""
                         <input type="text" name="username"
                         """.stripIndent().trim())))
-                .andExpect(content().string(containString("""
+                .andExpect(content().string(containsString("""
                         <input type="password" name="password"
                         """.stripIndent().trim())))
-                .andExpect(content().string(containString("""
+                .andExpect(content().string(containsString("""
                         <input type="submit" value="회원가입"
                         """.stripIndent().trim())));
     }
@@ -63,6 +64,65 @@ public class MemberControllerTest {
         resultActions
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("join"))
-                .andExpect(status().is2xxSuccessful());
+                .andExpect(status().is3xxRedirection());
+    }
+
+
+    @Test
+    @DisplayName("회원가입시에 올바른 데이터를 넘기지 않으면 400")
+    void t003() throws Exception {
+        //WHEN
+        ResultActions resultActions = mvc
+                .perform(post("/member/join")
+                        .with(csrf()) // CSRF 키 생성 th:action 했을때 key가 생기는데 이때 키가없음안댐
+                        .param("username", "user10")
+                )
+                .andDo(print());
+        //THEN
+        resultActions
+                .andExpect(handler().handlerType(MemberController.class))
+                .andExpect(handler().methodName("join"))
+                .andExpect(status().is4xxClientError());
+
+        //WHEN
+        resultActions = mvc
+                .perform(post("/member/join")
+                        .with(csrf()) // CSRF 키 생성 th:action 했을때 key가 생기는데 이때 키가없음안댐
+                        .param("password", "1234")
+                )
+                .andDo(print());
+        //THEN
+        resultActions
+                .andExpect(handler().handlerType(MemberController.class))
+                .andExpect(handler().methodName("join"))
+                .andExpect(status().is4xxClientError());
+
+        //WHEN
+        resultActions = mvc
+                .perform(post("/member/join")
+                        .with(csrf()) // CSRF 키 생성 th:action 했을때 key가 생기는데 이때 키가없음안댐
+                        .param("username", "user10" + "a".repeat(30))
+                        .param("password", "1234")
+                )
+                .andDo(print());
+        //THEN
+        resultActions
+                .andExpect(handler().handlerType(MemberController.class))
+                .andExpect(handler().methodName("join"))
+                .andExpect(status().is4xxClientError());
+
+        //WHEN
+        resultActions = mvc
+                .perform(post("/member/join")
+                        .with(csrf()) // CSRF 키 생성 th:action 했을때 key가 생기는데 이때 키가없음안댐
+                        .param("username", "user10")
+                        .param("password", "1234" + "a".repeat(30))
+                )
+                .andDo(print());
+        //THEN
+        resultActions
+                .andExpect(handler().handlerType(MemberController.class))
+                .andExpect(handler().methodName("join"))
+                .andExpect(status().is4xxClientError());
     }
 }
