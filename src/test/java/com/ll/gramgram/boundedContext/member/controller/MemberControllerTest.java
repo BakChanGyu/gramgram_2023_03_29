@@ -1,6 +1,7 @@
-package com.ll.gramgram.member;
+package com.ll.gramgram.boundedContext.member.controller;
 
-import com.ll.gramgram.member.controller.MemberController;
+import com.ll.gramgram.boundedContext.member.entity.Member;
+import com.ll.gramgram.boundedContext.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -23,6 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional // 실제로 테스트에서 발생한 DB 작업이 영구적으로 적용되지 않도록 해줌. (test+ transaction 조합은 자동롤백)
 @ActiveProfiles("test") // application-test.yml 을 활성화 시킨다.
 public class MemberControllerTest {
+    @Autowired
+    private MemberService memberService;
     @Autowired
     private MockMvc mvc;
 
@@ -50,6 +54,7 @@ public class MemberControllerTest {
     }
 
     @Test
+//    @Rollback(value = false) // DB에 흔적 남는다.
     @DisplayName("회원가입")
     void t002() throws Exception {
         //WHEN
@@ -65,6 +70,10 @@ public class MemberControllerTest {
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("join"))
                 .andExpect(status().is3xxRedirection());
+
+        Member member = memberService.findByUsername("user10").orElse(null);
+
+        assertThat(member).isNotNull();
     }
 
 
@@ -124,5 +133,48 @@ public class MemberControllerTest {
                 .andExpect(handler().handlerType(MemberController.class))
                 .andExpect(handler().methodName("join"))
                 .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    @DisplayName("로그인 폼")
+    void t004() throws Exception {
+        //WHEN
+        ResultActions resultActions = mvc
+                .perform(get("/member/login")) // 스프링이 내부적으로 브라우저 띄워서 테스트.
+                .andDo(print()); // 크게 의미없고 그냥 확인용
+        //THEN
+        resultActions
+                .andExpect(handler().handlerType(MemberController.class))
+                .andExpect(handler().methodName("showLogin"))
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(content().string(containsString("""
+                        <input type="text" name="username"
+                        """.stripIndent().trim())))
+                .andExpect(content().string(containsString("""
+                        <input type="password" name="password"
+                        """.stripIndent().trim())))
+                .andExpect(content().string(containsString("""
+                        <input type="submit" value="로그인"
+                        """.stripIndent().trim())));
+    }
+
+
+    @Test
+    // @Rollback(value = false) // DB에 흔적이 남는다.
+    @DisplayName("로그인 처리")
+    void t005() throws Exception {
+        // WHEN
+        ResultActions resultActions = mvc
+                .perform(post("/member/login")
+                        .with(csrf()) // CSRF 키 생성
+                        .param("username", "user1")
+                        .param("password", "1234")
+                )
+                .andDo(print());
+
+        // THEN
+        resultActions
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("/**"));
     }
 }
