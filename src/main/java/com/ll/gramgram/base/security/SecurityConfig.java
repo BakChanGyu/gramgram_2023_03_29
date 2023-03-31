@@ -19,6 +19,19 @@ public class SecurityConfig {
                 .formLogin(
                         formLogin -> formLogin
                                 .loginPage("/member/login")
+                                /** 관리자가 로그인한 경우
+                                .successHandler(new SimpleUrlAuthenticationSuccessHandler() {
+                                    @Override
+                                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+                                        if (isAdmin(따로 구현)) {
+                                            DefaultRedirectStrategy defaultRedirectStrategy = new DefaultRedirectStrategy();
+                                            defaultRedirectStrategy.sendRedirect(request, response, "/adm");
+                                        } else {
+                                            super.onAuthenticationSuccess(request, response, authentication);
+                                        }
+                                    }
+                                })
+                                 */
                 )
                 .logout(
                         logout -> logout
