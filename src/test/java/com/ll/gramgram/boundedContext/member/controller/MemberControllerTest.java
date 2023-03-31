@@ -202,7 +202,7 @@ public class MemberControllerTest {
         // 가상의 브라우저로 form 만들어서 처리한다.
         // WHEN
         ResultActions resultActions = mvc
-                .perform(post("/member/me")
+                .perform(get("/member/me")
                 )
                 .andDo(print());
 
