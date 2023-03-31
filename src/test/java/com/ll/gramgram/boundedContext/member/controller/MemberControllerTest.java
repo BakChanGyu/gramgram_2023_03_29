@@ -2,13 +2,17 @@ package com.ll.gramgram.boundedContext.member.controller;
 
 import com.ll.gramgram.boundedContext.member.entity.Member;
 import com.ll.gramgram.boundedContext.member.service.MemberService;
+import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -163,6 +167,7 @@ public class MemberControllerTest {
     // @Rollback(value = false) // DB에 흔적이 남는다.
     @DisplayName("로그인 처리")
     void t005() throws Exception {
+        // 가상의 브라우저로 form 만들어서 처리한다.
         // WHEN
         ResultActions resultActions = mvc
                 .perform(post("/member/login")
@@ -171,6 +176,16 @@ public class MemberControllerTest {
                         .param("password", "1234")
                 )
                 .andDo(print());
+
+        // 세션에 접근해서 값을 가져와서
+        MvcResult mvcResult = resultActions.andReturn();
+        // 원래 getSessoin을 하면, 만약에 없을 경우에 만들어서라도 준다.
+        // 그러나 false로 하면, 없으면 안 만든다.
+        HttpSession session = mvcResult.getRequest().getSession(false);
+        SecurityContext securityContext = (SecurityContext) session.getAttribute("SPRING_SECURITY_CONTEXT");
+        User user = (User) securityContext.getAuthentication().getPrincipal();
+
+        assertThat(user.getUsername()).isEqualTo("user1");
 
         // THEN
         resultActions
