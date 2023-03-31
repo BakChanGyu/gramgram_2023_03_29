@@ -1,7 +1,10 @@
 package com.ll.gramgram.boundedContext.member.controller;
 
+import com.ll.gramgram.base.rq.Rq;
+import com.ll.gramgram.base.rsData.RsData;
 import com.ll.gramgram.boundedContext.member.entity.Member;
 import com.ll.gramgram.boundedContext.member.service.MemberService;
+import com.ll.gramgram.standard.util.Ut;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -25,6 +28,7 @@ import java.security.Principal;
 @Log4j2
 public class MemberController {
     private final MemberService memberService;
+    private final Rq rq;
 
     @PreAuthorize("isAnonymous()")
     @GetMapping("/join")
@@ -45,14 +49,16 @@ public class MemberController {
 
     @PreAuthorize("isAnonymous()")
     @PostMapping("/join")
-    public String join(@Valid JoinForm joinForm,
-                       BindingResult result) {
-        if (result.hasErrors()) {
-            log.info(result);
-        }
-        memberService.join(joinForm.getUsername(), joinForm.getPassword());
+    public String join(@Valid JoinForm joinForm) {
+        RsData<Member> joinRs = memberService.join(joinForm.getUsername(), joinForm.getPassword());
 
-        return "redirect:/";
+        if (joinRs.isFail()) {
+            // 뒤로가기 하고 거기서 메시지 보여줘
+            return rq.historyBack(joinRs.getMsg());
+        }
+
+        // 아래 링크로 리다이렉트 (302, 이동) 하고 그 페이지에서 메세지 보여줘
+        return rq.redirectWithMsg("/member/login", joinRs);
     }
 
     @PreAuthorize("isAnonymous()")
